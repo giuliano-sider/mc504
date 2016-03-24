@@ -1,0 +1,52 @@
+MATRIX_THREAD_BUNDLE = {
+	"contents": {
+		"threaded_matrix_bundle.c":
+			"utility for multiplying matrices",
+		"random_matrix_bundle.c":
+			"utility for generating random matrices",
+		"matrix.c":
+			"library with matrix functions"
+	}
+	,
+	"description": "created test and profile comparison for basic multithreaded operations with an integer matrix",
+	"creator": "Giuliano Sider",
+	"creation_date": "21/03/2016",
+	"last_modified": "23/03/2016",
+	"message": "see description",
+	"license": "GPL v2",
+	"version": 0.314159,
+	"issues": [
+		"move the threaded multiplication to the matrix library, with different possible schemes for allocating work to threads",
+		"avoid the code duplication (line 199-235, 236-277) where we check for the number of rows in mt1 and columns in mt2",		
+		"add some new matrix operations like addition, that invoke the thread allocator separately",
+		"move the time function into some utility library for profiling different code. make it non-static so that different threads can use it?"
+	]
+}
+
+Help:
+
+Installation: none... just 'make all' to compile and 'make run' to test it.
+Check the instance folder with the results
+It will produce a directory with all test instance inputs and outputs, plus a timing profile of each executed instance in the profile.txt file.
+See if you can squeeze performance out of your OS scheduler by using multithreaded code!
+Modify run_instances.sh to perform different tests, or do it manually on the command line.
+
+In my machine, I get a nearly 3x speedup by using at least 4 threads. Using more than that shouldn't have an effect on speed except by increasing the overhead of thread management and context switching, at least on a typical four core machine.
+
+USAGE: threaded_matrix_multiply [--threaded [num_threads]] [--profile]
+
+	Takes two matrices from stdin and multiplies them. 
+	First line is 2 integers: m1 n1
+	Followed by m1 lines with n1 integers
+	And then a line with 2 integers: m2 n2
+	Followed by m2 lines with n2 integers.
+	Specify '--threaded' to parallelize the multiplication, with an optional suggested number of threads.
+	Specify '--profile' to measure time taken for key operations.
+	Example: threaded_matrix_multiply < my_mats --threaded 41 --profile > my_output 2> my_profile
+
+
+USAGE: random_matrix m n [--seed seed_num] [--interval a b]
+	
+	A random matrix of m rows and n columns will be produced for standard output. 
+	A seed may be specified; otherwise, system time will be used. 
+	An interval of integers [a, b] may be specified
