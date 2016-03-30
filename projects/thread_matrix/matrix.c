@@ -39,7 +39,7 @@ void fill_random_matrix(matrix * mt, int seed, int a, int b) {
 
 void print_matrix(matrix *mt) {
 	int i, j;
-	printf("%i %i\n", mt->m, mt->m);
+	printf("%i %i\n", mt->m, mt->n);
 	for(i = 0; i < mt->m; i++) {
 		for(j = 0; j < mt->n; j++, putchar(' ') ) {
 			printf("%i", mt->data[i][j]);
