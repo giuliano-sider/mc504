@@ -72,7 +72,7 @@ to update the Makefile in the same directory with a line: obj-y += getsetkey.o
 
 6. Use some disk image to run the kernel on qemu:
 	qemu-system-i386 -hda my_disk_image -kernel arch/i386/boot/bzImage -append "ro root=/dev/hda"
-		-hdb map_int_string
+		-hdb map_int_string -hdc strings_neat.txt
 	where the latter two are the test program executable compiled from this source package with
 	gcc -m32 -static -o map_int_string map_int_string.c
 	and the input file for the test that we carried for the hash map.
