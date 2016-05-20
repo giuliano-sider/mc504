@@ -1,0 +1,87 @@
+------------------------------------- README -------------------------------------------
+
+Author: Giuliano Sider
+Version: 1.0
+Date: May 19th 2016
+Class: MC504 (Introduction to Operating Systems)
+Exercise: Implement a Linux system call that maintains a map of integer keys to strings
+in kernel space.
+Objective: Demonstrate the basics of kernel hacking without (too much) pain, and even
+a little bit of fun.
+
+Solution: In this package, we implemented a hash map (integer -> string) with dictionary
+operations, an iterator structure, a print function, and a test program (to be run in 
+user space).
+
+In reality, the hash map itself has no knowledge of what its payload is: it could have
+been well carrying void pointers for generality, as is the usual case with these data
+structure libraries. It does know that its keys are integers, and it can use a custom
+hash function passed in by the user (interface and polymorphism in C !!).
+
+However, for the purposes of this exercise, we only exposed the following two syscalls
+to the clients in user space:
+
+	asmlinkage long sys_getkey(int key, char **value)
+	asmlinkage long sys_setkey(int key, char *value)
+
+By navigating the linux-4.5.4 source tree, we 
+
+1. added the two syscalls to the x86 specific syscall entry table at 
+	arch/x86/entry/syscalls/syscall_32.tbl
+
+	379	i386	getkey			sys_getkey
+	380	i386	setkey			sys_setkey
+
+2. added the two function declarations above to include/linux/syscalls.h
+
+3. implemented the two functions and their dependencies by adding files to
+	arch/x86/kernel
+
+We added the files getsetkey.c and getsetkey.h - both of them do not export any symbols,
+except for the two syscalls above. Remember to use 'static' for symbols that are internal
+to a compilation unit in C. As a matter of fact, we maintained a singleton hash map 
+(initially empty) as a static variable in the getsetkey module, and added/removed mappings
+via user requests. 
+
+The interface and implementations of the functions is described in
+the code, but in a nutshell, the two syscalls return -1 on error and 0 on success (typical
+for a syscall). The getkey call takes an integer key and stores the mapped value (the pointer
+to the string) in the variable passed by the user. To carry out this transfer (the pointer
+stored in the hash table must be returned to the user), we need to use the copy_to_user
+macro, which is defined in the <asm/uaccess.h> header. Note that this macro is architecture
+dependent. The kernel and the user process operate in different virtual address spaces, and
+depending on the circumstances, the user's memory may have been swapped out to disk or may
+have a write-protected bit set. The result is a page fault that the kernel must handle. The
+copy_to_user macro (and its mirror image, copy_from_user) also uses access_ok to check if 
+the user process has permission to read/write the affected memory areas. The user cannot
+simply be allowed to read/write memory to the kernel without adequate safety checks, since
+otherwise the whole effort of having a kernel space with elevated priviliges and separate
+address spaces for user processes would be pointless.
+
+While sys_getkey uses copy_to_user to return a pointer to the string associated with the given
+key (or a NULL pointer if there is no such mapping), sys_setkey takes a key, value pair and adds
+it to the hash map, if the value (pointer to string) is non NULL, in which case it deletes the
+mapping from the table. If the key already belongs to the map, the mapping is reset. Since no
+actual memory is transferred from user space to kernel space, aside from the key and the 
+pointer (which is not ever dereferenced) passed as parameters, no copy_from_user is necessary.
+
+4. Having implemented the functions in a file getsetkey.c in arch/x86/kernel, it is necessary
+to update the Makefile in the same directory with a line: obj-y += getsetkey.o
+
+5. Compile the kernel for the x86 architecture: make -j 4 ARCH=i386
+
+6. Use some disk image to run the kernel on qemu:
+	qemu-system-i386 -hda my_disk_image -kernel arch/i386/boot/bzImage -append "ro root=/dev/hda"
+		-hdb map_int_string
+	where the latter two are the test program executable compiled from this source package with
+	gcc -m32 -static -o map_int_string map_int_string.c
+	and the input file for the test that we carried for the hash map.
+
+Package Contents:
+map_int_string.c -> test program for the hash map syscalls
+getsetkey.c -> implementation of hash map related functions and the exposed syscalls
+getsetkey.h -> declarations for the getsetkey module (compilation unit)
+convenient_primes.c -> generate some primes used as hash map sizes (precomputed)
+strings_neat.txt -> a bunch of words
+README -> this
+
